@@ -6,15 +6,28 @@ const path    = require('path');
 // ── Validar variables de entorno al arrancar ─────────────────────────────────
 const REQUIRED_ENV = ['SUPABASE_URL', 'SUPABASE_KEY', 'JWT_SECRET'];
 const missing = REQUIRED_ENV.filter(k => !process.env[k]);
-if (missing.length) {
+
+// En ambientes serverless no conviene hard-crashear el proceso.
+// Mostramos un error claro y evitamos que Vercel registre “crash”.
+const envValid = missing.length === 0;
+if (!envValid) {
   console.error('❌ Variables de entorno faltantes:', missing.join(', '));
-  process.exit(1);
 }
 
 const authRoutes        = require('./routes/auth');
 const transactionRoutes = require('./routes/transactions');
 
 const app  = express();
+
+// Si faltan variables de entorno requeridas, evitamos errores internos
+// en rutas /api. Devolvemos un 500 claro en vez de “crash”.
+app.use('/api', (req, res, next) => {
+  if (envValid) return next();
+  return res.status(500).json({
+    error: 'Configuración incompleta en el backend.',
+    missing
+  });
+});
 const PORT = process.env.PORT || 3001;
 
 // ── Middlewares globales ─────────────────────────────────────────────────────
@@ -33,12 +46,14 @@ app.use('/api/transactions', transactionRoutes);
 // ── Ruta de salud ────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
   res.json({
-    status: 'ok',
+    status: envValid ? 'ok' : 'error',
     timestamp: new Date().toISOString(),
     env: {
-      supabase: !!process.env.SUPABASE_URL,
+      supabaseUrl: !!process.env.SUPABASE_URL,
+      supabaseKey: !!process.env.SUPABASE_KEY,
       jwt: !!process.env.JWT_SECRET
-    }
+    },
+    missing: missing
   });
 });
 

@@ -31,7 +31,7 @@ module.exports = async (req, res) => {
 
       // Verificar si el correo ya existe
       const { data: existing } = await supabase
-        .from('users')
+        .from('profiles')
         .select('id')
         .eq('email', cleanEmail)
         .maybeSingle();
@@ -44,7 +44,7 @@ module.exports = async (req, res) => {
 
       // Insertar usuario — solo los campos definidos en la tabla
       const { data: newUser, error: insertError } = await supabase
-        .from('users')
+        .from('profiles')
         .insert({
           name    : name.trim(),
           email   : cleanEmail,
@@ -82,7 +82,7 @@ module.exports = async (req, res) => {
         return res.status(400).json({ error: 'Correo y contraseña son requeridos.' });
 
       const { data: user } = await supabase
-        .from('users')
+        .from('profiles')
         .select('*')
         .eq('email', email.toLowerCase().trim())
         .maybeSingle();
@@ -121,7 +121,7 @@ module.exports = async (req, res) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
       const { data: user } = await supabase
-        .from('users')
+        .from('profiles')
         .select('id, name, email, plan')
         .eq('id', decoded.id)
         .single();

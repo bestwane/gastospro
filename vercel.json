@@ -1,7 +1,39 @@
 {
   "version": 2,
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/(.*)",     "destination": "/index.html" }
+  "builds": [
+    {
+      "src": "api/auth.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/transactions.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/health.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "index.html",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/auth/(.*)",
+      "dest": "/api/auth.js"
+    },
+    {
+      "src": "/api/transactions(.*)",
+      "dest": "/api/transactions.js"
+    },
+    {
+      "src": "/api/health",
+      "dest": "/api/health.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
   ]
 }

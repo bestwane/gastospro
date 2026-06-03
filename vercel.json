@@ -1,17 +1,12 @@
 {
   "version": 2,
-  "functions": {
-    "api/*.js": {
-      "runtime": "nodejs20.x"
-    }
-  },
   "routes": [
-    { "src": "/api/auth/register", "dest": "/api/auth.js" },
-    { "src": "/api/auth/login",    "dest": "/api/auth.js" },
-    { "src": "/api/auth/me",       "dest": "/api/auth.js" },
-    { "src": "/api/auth/(.*)",     "dest": "/api/auth.js" },
+    { "src": "/api/auth/register",    "dest": "/api/auth.js" },
+    { "src": "/api/auth/login",       "dest": "/api/auth.js" },
+    { "src": "/api/auth/me",          "dest": "/api/auth.js" },
+    { "src": "/api/auth/(.*)",        "dest": "/api/auth.js" },
     { "src": "/api/transactions(.*)", "dest": "/api/transactions.js" },
-    { "src": "/api/status",        "dest": "/api/status.js" },
-    { "src": "/(.*)",              "dest": "/index.html" }
+    { "src": "/api/status",           "dest": "/api/status.js" },
+    { "src": "/(.*)",                 "dest": "/index.html" }
   ]
 }

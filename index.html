@@ -439,7 +439,9 @@ async function initApp() {
 // ── CARGA DE DATOS ───────────────────────────────────────────────────────────
 async function loadTxs() {
   try {
-    TXS = await api('GET', `/api/transactions?year=${vY}`);
+    const _d = await api('GET', `/api/transactions?year=${vY}`);
+    TXS = (_d && _d.transactions) ? _d.transactions : (Array.isArray(_d) ? _d : []);
+    if (_d && _d.usage) updateUsageBanner(_d.usage);
   } catch(e) {
     console.error('Error al cargar transacciones:', e.message);
     TXS = [];

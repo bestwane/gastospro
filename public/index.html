@@ -316,9 +316,13 @@ let charts = {};
 
 // ── Utilidades ───────────────────────────────────────────────────────────────
 function fmt(v) {
-  const s = SYM[CUR] || '$', r = RATES[CUR] || 1, x = v * r;
-  if (['JPY','KRW','HUF','CLP','COP'].includes(CUR)) return s + Math.round(x).toLocaleString();
-  return s + parseFloat(x.toFixed(2)).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  const s = SYM[CUR] || '$';
+  if (['JPY','KRW','HUF','CLP','COP'].includes(CUR))
+    return s + Math.round(v).toLocaleString();
+  return s + parseFloat(Number(v).toFixed(2)).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
 }
 function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
 function buildLegend(labels, colors, values, total) {

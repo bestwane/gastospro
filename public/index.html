@@ -470,7 +470,7 @@ async function addTx() {
   btn.disabled = true; btn.textContent = 'Guardando...';
   try {
     const newTx = await api('POST', '/api/transactions', { type, cat, amount, date, desc, ccname, currency: CUR });
-    TXS.push(newTx);
+    if (!Array.isArray(TXS)) TXS = []; TXS.push(newTx);
     const d = new Date(date); vY = d.getFullYear(); vM = d.getMonth();
     document.getElementById('f-amount').value = '';
     document.getElementById('f-desc').value = '';

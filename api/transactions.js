@@ -14,7 +14,7 @@ function verifyToken(req) {
 
 async function getUserPlan(userId) {
   const { data } = await supabase
-    .from('users')
+    .from('profiles')
     .select('plan, plan_expires')
     .eq('id', userId)
     .single();
@@ -71,12 +71,15 @@ module.exports = async (req, res) => {
     const { data, error } = await query;
     if (error) return res.status(500).json({ error: 'Error al obtener transacciones.' });
 
+    // Normalizar description → desc para compatibilidad con el frontend
+    const normalized = (data || []).map(t => ({ ...t, desc: t.description || '' }));
+
     // Incluir info del plan y uso actual en la respuesta
     const plan = await getUserPlan(user.id);
     const monthlyCount = await getMonthlyCount(user.id);
 
     return res.json({
-      transactions: data,
+      transactions: normalized,
       usage: {
         plan,
         count: monthlyCount,
@@ -111,12 +114,15 @@ module.exports = async (req, res) => {
       .insert([{
         user_id : user.id, type, cat,
         amount  : parseFloat(Number(amount).toFixed(2)),
-        date, desc: desc?.trim() || '',
+        date, description: desc?.trim() || '',
         ccname  : type === 'card' ? (ccname?.trim() || 'Sin nombre') : '',
         currency: currency || 'USD'
       }]).select().single();
 
     if (error) return res.status(500).json({ error: 'Error al guardar la transacción.' });
+
+    // Normalizar campo para el frontend
+    if (data) data.desc = data.description;
 
     // Devolver también el uso actualizado
     const newCount = await getMonthlyCount(user.id);

@@ -767,13 +767,13 @@ function startUpgrade() {
 async function loadTxs() {
   try {
     const data = await api('GET', `/api/transactions?year=${vY}`);
-    // La API ahora devuelve { transactions, usage }
-    if (data.transactions) {
+    if (data && data.transactions) {
       TXS = data.transactions;
       updateUsageBanner(data.usage);
+    } else if (Array.isArray(data)) {
+      TXS = data;
     } else {
-      // Compatibilidad con respuesta anterior (array directo)
-      TXS = Array.isArray(data) ? data : [];
+      TXS = [];
     }
   } catch(e) {
     console.error('Error al cargar transacciones:', e.message);
@@ -783,38 +783,34 @@ async function loadTxs() {
 
 // ── Modifica addTx para manejar el error de límite alcanzado ─────────────────
 // Reemplaza solo el bloque try dentro de la función addTx existente:
-async function addTxWithLimit() {
-  const btn   = document.getElementById('add-btn');
-  const ok    = document.getElementById('f-ok');
+async function addTx() {
+  const btn = document.getElementById('add-btn');
+  const ok = document.getElementById('f-ok');
   const errEl = document.getElementById('f-err');
-  const type   = document.getElementById('f-type').value;
-  const cat    = document.getElementById('f-cat').value;
+  const type = document.getElementById('f-type').value;
+  const cat = document.getElementById('f-cat').value;
   const amount = document.getElementById('f-amount').value;
-  const date   = document.getElementById('f-date').value;
-  const desc   = document.getElementById('f-desc').value.trim();
+  const date = document.getElementById('f-date').value;
+  const desc = document.getElementById('f-desc').value.trim();
   const ccname = document.getElementById('f-ccname').value.trim();
-
   errEl.style.display = 'none';
   if (!amount || Number(amount) <= 0) { errEl.textContent = 'Ingresa un monto válido.'; errEl.style.display = 'inline'; return; }
   if (!date) { errEl.textContent = 'Selecciona una fecha.'; errEl.style.display = 'inline'; return; }
-
   btn.disabled = true; btn.textContent = 'Guardando...';
   try {
     const result = await api('POST', '/api/transactions', { type, cat, amount, date, desc, ccname, currency: CUR });
-
-    // La API devuelve { transaction, usage }
     const newTx = result.transaction || result;
+    if (!Array.isArray(TXS)) TXS = [];
     TXS.push(newTx);
     if (result.usage) updateUsageBanner(result.usage);
-
     const d = new Date(date); vY = d.getFullYear(); vM = d.getMonth();
-    document.getElementById('f-amount').value  = '';
-    document.getElementById('f-desc').value    = '';
-    document.getElementById('f-ccname').value  = '';
+    document.getElementById('f-amount').value = '';
+    document.getElementById('f-desc').value = '';
+    document.getElementById('f-ccname').value = '';
     ok.style.display = 'inline'; setTimeout(() => ok.style.display = 'none', 2500);
     renderAll();
   } catch(e) {
-    if (e.message.includes('límite_alcanzado') || e.message.includes('límite')) {
+    if (e.message.includes('límite')) {
       errEl.innerHTML = `⚠️ Límite del plan gratuito alcanzado. <a href="#" onclick="goTabByName('plans');return false;" style="color:#1e3a5f;font-weight:700">Ver planes →</a>`;
     } else {
       errEl.textContent = e.message;

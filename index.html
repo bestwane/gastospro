@@ -478,7 +478,15 @@ async function initApp() {
 // ── CARGA DE DATOS ───────────────────────────────────────────────────────────
 async function loadTxs() {
   try {
-    TXS = await api('GET', `/api/transactions?year=${vY}`);
+    const data = await api('GET', `/api/transactions?year=${vY}`);
+    if (data && data.transactions) {
+      TXS = data.transactions;
+      updateUsageBanner(data.usage);
+    } else if (Array.isArray(data)) {
+      TXS = data;
+    } else {
+      TXS = [];
+    }
   } catch(e) {
     console.error('Error al cargar transacciones:', e.message);
     TXS = [];
@@ -764,22 +772,6 @@ function startUpgrade() {
 
 // ── Modifica la función loadTxs existente para capturar el uso ───────────────
 // Reemplaza la función loadTxs original con esta versión:
-async function loadTxs() {
-  try {
-    const data = await api('GET', `/api/transactions?year=${vY}`);
-    if (data && data.transactions) {
-      TXS = data.transactions;
-      updateUsageBanner(data.usage);
-    } else if (Array.isArray(data)) {
-      TXS = data;
-    } else {
-      TXS = [];
-    }
-  } catch(e) {
-    console.error('Error al cargar transacciones:', e.message);
-    TXS = [];
-  }
-}
 
 // ── Modifica addTx para manejar el error de límite alcanzado ─────────────────
 // Reemplaza solo el bloque try dentro de la función addTx existente:

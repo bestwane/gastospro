@@ -2,7 +2,7 @@
   "name": "gastospro",
   "version": "1.0.0",
   "description": "Aplicación web de gestión de gastos personales",
-  "main": "backend/server.js",
+  "main": "index.js",
   "scripts": {
     "start": "node backend/server.js",
     "dev": "nodemon backend/server.js"

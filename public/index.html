@@ -469,7 +469,7 @@ async function addTx() {
   if (!date) { errEl.textContent = 'Selecciona una fecha.'; errEl.style.display = 'inline'; return; }
   btn.disabled = true; btn.textContent = 'Guardando...';
   try {
-    const newTx = await api('POST', '/api/transactions', { type, cat, amount, date, desc, ccname, currency: CUR });
+    const _res = await api('POST', '/api/transactions', { type, cat, amount, date, desc, ccname, currency: CUR }); const newTx = _res.transaction || _res;
     if (!Array.isArray(TXS)) TXS = []; TXS.push(newTx);
     const d = new Date(date); vY = d.getFullYear(); vM = d.getMonth();
     document.getElementById('f-amount').value = '';

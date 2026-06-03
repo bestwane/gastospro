@@ -10,12 +10,11 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // Detectar la subruta: /api/auth/register → /register
-  const url    = req.url || '';
-  const route  = url.includes('/register') ? '/register'
-               : url.includes('/login')    ? '/login'
-               : url.includes('/me')       ? '/me'
-               : '/unknown';
+  const url   = req.url || '';
+  const route = url.includes('/register') ? '/register'
+              : url.includes('/login')    ? '/login'
+              : url.includes('/me')       ? '/me'
+              : '/unknown';
 
   // ── POST /api/auth/register ────────────────────────────────────────────────
   if (req.method === 'POST' && route === '/register') {
@@ -29,7 +28,7 @@ module.exports = async (req, res) => {
 
       const cleanEmail = email.toLowerCase().trim();
 
-      // Verificar si el correo ya existe
+      // Verificar si el correo ya existe en profiles
       const { data: existing } = await supabase
         .from('profiles')
         .select('id')
@@ -39,24 +38,29 @@ module.exports = async (req, res) => {
       if (existing)
         return res.status(409).json({ error: 'El correo ya está registrado.' });
 
-      // Encriptar contraseña
+      // Encriptar contraseña y crear perfil
       const hashed = await bcrypt.hash(password, 10);
 
-      // Insertar usuario — solo los campos definidos en la tabla
       const { data: newUser, error: insertError } = await supabase
         .from('profiles')
         .insert({
           name    : name.trim(),
           email   : cleanEmail,
           password: hashed,
-          plan    : 'free'
+          plan    : 'free',
+          currency: 'USD'
         })
-        .select('id, name, email, plan')
+        .select('id, name, email, plan, currency')
         .single();
 
       if (insertError) {
-        console.error('Error al insertar usuario:', insertError);
-        return res.status(500).json({ error: 'Error al crear el usuario: ' + insertError.message });
+        console.error('Error al insertar perfil:', insertError);
+        return res.status(500).json({
+          error: insertError.message,
+          code: insertError.code,
+          details: insertError.details,
+          hint: insertError.hint
+        });
       }
 
       const token = jwt.sign(
@@ -102,7 +106,7 @@ module.exports = async (req, res) => {
 
       return res.json({
         token,
-        user: { id: user.id, name: user.name, email: user.email, plan: user.plan }
+        user: { id: user.id, name: user.name, email: user.email, plan: user.plan, currency: user.currency || 'USD' }
       });
 
     } catch (err) {
@@ -130,6 +134,26 @@ module.exports = async (req, res) => {
 
       return res.json({ user });
 
+    } catch (err) {
+      return res.status(403).json({ error: 'Token inválido.' });
+    }
+  }
+
+  // ── POST /api/auth/currency ─────────────────────────────────────────────────
+  if (req.method === 'POST' && route === '/currency') {
+    try {
+      const authHeader = req.headers['authorization'];
+      const token = authHeader && authHeader.split(' ')[1];
+      if (!token) return res.status(401).json({ error: 'Token requerido.' });
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const { currency } = req.body;
+      if (!currency) return res.status(400).json({ error: 'Moneda requerida.' });
+      const { error } = await supabase
+        .from('profiles')
+        .update({ currency })
+        .eq('id', decoded.id);
+      if (error) return res.status(500).json({ error: 'Error al actualizar moneda.' });
+      return res.json({ success: true, currency });
     } catch (err) {
       return res.status(403).json({ error: 'Token inválido.' });
     }

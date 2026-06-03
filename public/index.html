@@ -428,6 +428,12 @@ async function initApp() {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   document.getElementById('u-pill').textContent = USER.name;
+  // Cargar moneda preferida del usuario
+  if (USER.currency) {
+  CUR = USER.currency;
+  document.getElementById('cur-sel').value = USER.currency;
+  document.getElementById('f-cur-lbl').textContent = USER.currency;
+}
   document.getElementById('f-cur-lbl').textContent = CUR;
   const t = new Date(); vY = t.getFullYear(); vM = t.getMonth();
   document.getElementById('f-date').value = t.toISOString().split('T')[0];
@@ -502,11 +508,15 @@ function goTab(id, el) {
   document.getElementById('tab-' + id).classList.add('active');
   renderAll();
 }
-function changeCur(v) { CUR = v; document.getElementById('f-cur-lbl').textContent = v; renderAll(); }
-async function chMonth(d) {
-  vM += d;
-  if (vM < 0) { vM = 11; vY--; await loadTxs(); }
-  if (vM > 11) { vM = 0; vY++; await loadTxs(); }
+async function changeCur(v) {
+  CUR = v;
+  document.getElementById('f-cur-lbl').textContent = v;
+  // Guardar preferencia en el servidor
+  try {
+    await api('POST', '/api/auth/currency', { currency: v });
+  } catch(e) {
+    console.error('Error al guardar moneda:', e.message);
+  }
   renderAll();
 }
 function updateCatOptions() {

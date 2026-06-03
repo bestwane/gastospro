@@ -112,6 +112,39 @@ tr:hover td{background:#fafbfc}
 .loading{text-align:center;padding:2rem;color:#94a3b8;font-size:.88rem}
 .spinner{display:inline-block;width:20px;height:20px;border:2px solid #e2e8f0;border-top-color:#1e3a5f;border-radius:50%;animation:spin .7s linear infinite;margin-right:.5rem;vertical-align:middle}
 @keyframes spin{to{transform:rotate(360deg)}}
+/* ── Banner de uso ─────────────────────────────────────────────────────────── */
+.usage-banner{display:none;align-items:center;justify-content:space-between;gap:1rem;padding:.75rem 1.25rem;border-radius:10px;margin-bottom:1rem;flex-wrap:wrap}
+.usage-banner.warning{background:#fff7ed;border:1.5px solid #fed7aa;display:flex}
+.usage-banner.danger{background:#fef2f2;border:1.5px solid #fecaca;display:flex}
+.usage-banner.info{background:#eff6ff;border:1.5px solid #bfdbfe;display:flex}
+.banner-text{font-size:.85rem;font-weight:600;color:#374151}
+.banner-text span{font-weight:700}
+.banner-sub{font-size:.75rem;color:#6b7280;margin-top:.15rem}
+.btn-upgrade{background:#1e3a5f;color:#fff;border:none;padding:.45rem 1.1rem;border-radius:7px;font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:background .2s}
+.btn-upgrade:hover{background:#16304f}
+.usage-bar-wrap{width:100%;background:#e5e7eb;border-radius:4px;height:6px;margin-top:.4rem}
+.usage-bar{height:6px;border-radius:4px;transition:width .4s}
+
+/* ── Página de planes ─────────────────────────────────────────────────────── */
+.plans-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.5rem;margin-top:1rem}
+.plan-card{background:#fff;border:2px solid #e2e8f0;border-radius:16px;padding:2rem 1.75rem;position:relative;transition:border-color .2s}
+.plan-card.featured{border-color:#1e3a5f;box-shadow:0 8px 32px rgba(30,58,95,.12)}
+.plan-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#1e3a5f;color:#fff;font-size:.72rem;font-weight:700;padding:.3rem .9rem;border-radius:20px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.plan-name{font-size:1.1rem;font-weight:700;color:#0f172a;margin-bottom:.35rem}
+.plan-price{font-size:2.5rem;font-weight:700;color:#1e3a5f;letter-spacing:-.03em;line-height:1;margin-bottom:.25rem}
+.plan-price span{font-size:1rem;font-weight:500;color:#94a3b8}
+.plan-desc{font-size:.82rem;color:#64748b;margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid #f1f5f9}
+.plan-features{list-style:none;display:flex;flex-direction:column;gap:.6rem;margin-bottom:1.5rem}
+.plan-features li{font-size:.85rem;color:#374151;display:flex;align-items:center;gap:.5rem}
+.plan-features li::before{content:'✓';color:#059669;font-weight:700;font-size:.9rem;flex-shrink:0}
+.plan-features li.no::before{content:'✗';color:#dc2626}
+.btn-plan{width:100%;padding:.75rem;border-radius:9px;font-size:.9rem;font-weight:700;cursor:pointer;transition:all .2s;border:2px solid #1e3a5f}
+.btn-plan.primary{background:#1e3a5f;color:#fff}
+.btn-plan.primary:hover{background:#16304f}
+.btn-plan.secondary{background:#fff;color:#1e3a5f}
+.btn-plan.secondary:hover{background:#f0f4ff}
+.btn-plan:disabled{opacity:.6;cursor:not-allowed}
+.current-plan-tag{text-align:center;font-size:.78rem;color:#059669;font-weight:700;margin-top:.75rem}
 </style>
 </head>
 <body>
@@ -183,10 +216,16 @@ tr:hover td{background:#fafbfc}
   <div class="nav-t" onclick="goTab('credit',this)">💳 Tarjeta de crédito</div>
   <div class="nav-t" onclick="goTab('history',this)">📋 Historial</div>
   <div class="nav-t" onclick="goTab('annual',this)">📅 Anual</div>
+  <!-- ① Agrega esta pestaña dentro de <div class="nav"> al final de las otras pestañas -->
+<div class="nav-t" onclick="goTab('plans',this)">⭐ Planes</div>
+
+<!-- ③ Agrega este tab pane al final de los otros tab planes, antes de </div><!-- /main --> -->
+<div id="tab-plans" class="tab-pane">
+  <div class="page-header">
+    <div><div class="page-title">Planes y precios</div><div class="page-sub">Elige el plan que mejor se adapta a ti</div></div>
+  </div>
+  
 </div>
-
-<div class="main">
-
 <!-- DASHBOARD -->
 <div id="tab-dashboard" class="tab-pane active">
   <div class="page-header">
@@ -428,12 +467,6 @@ async function initApp() {
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
   document.getElementById('u-pill').textContent = USER.name;
-  // Cargar moneda preferida del usuario
-  if (USER.currency) {
-  CUR = USER.currency;
-  document.getElementById('cur-sel').value = USER.currency;
-  document.getElementById('f-cur-lbl').textContent = USER.currency;
-}
   document.getElementById('f-cur-lbl').textContent = CUR;
   const t = new Date(); vY = t.getFullYear(); vM = t.getMonth();
   document.getElementById('f-date').value = t.toISOString().split('T')[0];
@@ -445,9 +478,15 @@ async function initApp() {
 // ── CARGA DE DATOS ───────────────────────────────────────────────────────────
 async function loadTxs() {
   try {
-    const _d = await api('GET', `/api/transactions?year=${vY}`);
-    TXS = (_d && _d.transactions) ? _d.transactions : (Array.isArray(_d) ? _d : []);
-    if (_d && _d.usage) updateUsageBanner(_d.usage);
+    const data = await api('GET', `/api/transactions?year=${vY}`);
+    if (data && data.transactions) {
+      TXS = data.transactions;
+      updateUsageBanner(data.usage);
+    } else if (Array.isArray(data)) {
+      TXS = data;
+    } else {
+      TXS = [];
+    }
   } catch(e) {
     console.error('Error al cargar transacciones:', e.message);
     TXS = [];
@@ -475,8 +514,8 @@ async function addTx() {
   if (!date) { errEl.textContent = 'Selecciona una fecha.'; errEl.style.display = 'inline'; return; }
   btn.disabled = true; btn.textContent = 'Guardando...';
   try {
-    const _res = await api('POST', '/api/transactions', { type, cat, amount, date, desc, ccname, currency: CUR }); const newTx = _res.transaction || _res;
-    if (!Array.isArray(TXS)) TXS = []; TXS.push(newTx);
+    const newTx = await api('POST', '/api/transactions', { type, cat, amount, date, desc, ccname, currency: CUR });
+    TXS.push(newTx);
     const d = new Date(date); vY = d.getFullYear(); vM = d.getMonth();
     document.getElementById('f-amount').value = '';
     document.getElementById('f-desc').value = '';
@@ -508,15 +547,11 @@ function goTab(id, el) {
   document.getElementById('tab-' + id).classList.add('active');
   renderAll();
 }
-async function changeCur(v) {
-  CUR = v;
-  document.getElementById('f-cur-lbl').textContent = v;
-  // Guardar preferencia en el servidor
-  try {
-    await api('POST', '/api/auth/currency', { currency: v });
-  } catch(e) {
-    console.error('Error al guardar moneda:', e.message);
-  }
+function changeCur(v) { CUR = v; document.getElementById('f-cur-lbl').textContent = v; renderAll(); }
+async function chMonth(d) {
+  vM += d;
+  if (vM < 0) { vM = 11; vY--; await loadTxs(); }
+  if (vM > 11) { vM = 0; vY++; await loadTxs(); }
   renderAll();
 }
 function updateCatOptions() {
@@ -660,6 +695,81 @@ function renderAnnual() {
     }
   }
 })();
+
+// ── Estado del plan ──────────────────────────────────────────────────────────
+let USAGE = { plan: 'free', count: 0, limit: 30, remaining: 30 };
+
+function updateUsageBanner(usage) {
+  if (!usage) return;
+  USAGE = usage;
+
+  const banner   = document.getElementById('usage-banner');
+  const countEl  = document.getElementById('usage-count');
+  const limitEl  = document.getElementById('usage-limit');
+  const remEl    = document.getElementById('usage-remaining');
+  const bar      = document.getElementById('usage-bar');
+  const sub      = document.getElementById('usage-sub');
+
+  // Si es plan pro, ocultar banner
+  if (usage.plan === 'pro') {
+    banner.style.display = 'none';
+    updatePlanUI('pro');
+    return;
+  }
+
+  const pct = Math.min(100, Math.round((usage.count / usage.limit) * 100));
+  countEl.textContent = usage.count;
+  limitEl.textContent = usage.limit;
+  remEl.textContent   = usage.remaining;
+  bar.style.width     = pct + '%';
+
+  // Color y mensaje según uso
+  if (pct >= 100) {
+    banner.className = 'usage-banner danger';
+    bar.style.background = '#dc2626';
+    sub.innerHTML = '⚠️ <strong>Límite alcanzado.</strong> Mejora tu plan para seguir registrando.';
+  } else if (pct >= 70) {
+    banner.className = 'usage-banner warning';
+    bar.style.background = '#f97316';
+    sub.innerHTML = `⚠️ Casi en el límite. Te quedan <strong>${usage.remaining}</strong> transacciones.`;
+  } else {
+    banner.className = 'usage-banner info';
+    bar.style.background = '#1e3a5f';
+    sub.innerHTML = `Te quedan <strong>${usage.remaining}</strong> transacciones disponibles este mes.`;
+  }
+}
+
+function updatePlanUI(plan) {
+  const btnFree = document.getElementById('btn-free-plan');
+  const btnPro  = document.getElementById('btn-pro-plan');
+  const proTag  = document.getElementById('pro-current-tag');
+
+  if (plan === 'pro') {
+    if (btnFree) { btnFree.textContent = 'Plan anterior'; btnFree.disabled = true; }
+    if (btnPro)  { btnPro.style.display = 'none'; }
+    if (proTag)  { proTag.style.display = 'block'; }
+  } else {
+    if (btnFree) { btnFree.textContent = 'Plan actual'; btnFree.disabled = true; }
+    if (btnPro)  { btnPro.style.display = 'block'; btnPro.disabled = false; }
+    if (proTag)  { proTag.style.display = 'none'; }
+  }
+}
+
+function goTabByName(name) {
+  const tabs = document.querySelectorAll('.nav-t');
+  tabs.forEach(t => {
+    if (t.textContent.toLowerCase().includes(name)) {
+      t.click();
+    }
+  });
+}
+
+function startUpgrade() {
+  // En la Fase 3 esto abrirá Stripe Checkout
+  // Por ahora muestra un mensaje informativo
+  alert('🚀 La integración de pagos estará disponible muy pronto.\n\nPara suscribirte antes del lanzamiento, escríbenos a: soporte@gastospro.com');
+}
+
 </script>
 </body>
-</html>
+</html><!-- cache-bust -->
